@@ -15,10 +15,39 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('/api/inventory-items (GET)', () => {
     return request(app.getHttpServer())
-      .get('/')
+      .get('/api/inventory-items')
       .expect(200)
-      .expect('Hello World!');
+      .expect(expect.any(Array));
+  });
+
+  it('/api/inventory-items/create (POST)', () => {
+    request(app.getHttpServer()).post(
+      '/api/inventory-items/create',
+      (err, res) => {
+        if (err) {
+          expect(err).toBeUndefined();
+        }
+        expect(res.status).toEqual(200);
+        expect(res.body).toMatchObject({
+          id: expect.any(Number),
+          productCategory: expect.any(String),
+          title: expect.any(String),
+          brand: expect.any(String),
+          quantity: expect.any(Number),
+          price: expect.any(Number),
+          currency: expect.any(String),
+          createdAt: expect.any(Date),
+          updatedAt: expect.any(Date),
+        });
+      },
+    );
+  });
+  it('/api/inventory-items (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/api/inventory-items')
+      .expect(200)
+      .expect(expect.any(Array));
   });
 });

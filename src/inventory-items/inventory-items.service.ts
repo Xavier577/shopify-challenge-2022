@@ -1,56 +1,77 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
+import { DeletionCommentDto } from './dto/deletion-comment.dto';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
-import { DeletedItemEntity } from './entities/deleted-item.entity';
 import { InventoryItemEntity } from './entities/inventory-item.entity';
+import { DeletedItemsService } from '../deleted-items/deleted-items.service';
+import { InventoryItemsRepository } from './inventory-items.repository';
 
 @Injectable()
 export class InventoryItemsService {
   constructor(
-    @InjectRepository(InventoryItemEntity)
-    private readonly inventoryItemsRepositry: Repository<InventoryItemEntity>,
-    @InjectRepository(DeletedItemEntity)
-    private readonly deletedItemsRepositry: Repository<DeletedItemEntity>,
+    private readonly inventoryItemsRepositry: InventoryItemsRepository,
+    @Inject(DeletedItemsService)
+    private readonly deletedItemsService: DeletedItemsService,
   ) {}
 
   create(
     createInventoryItemDto: CreateInventoryItemDto,
   ): Promise<InventoryItemEntity> {
-    const item = new InventoryItemEntity();
-    item.productCategory = createInventoryItemDto.productCategory;
-    item.title = createInventoryItemDto.title;
-    item.brand = createInventoryItemDto.brand;
-    item.price = createInventoryItemDto.price;
-    item.currency = createInventoryItemDto.currency;
-    item.quantity = createInventoryItemDto.quantity;
-
+    const item = this.inventoryItemsRepositry.create(createInventoryItemDto);
     return this.inventoryItemsRepositry.save(item);
   }
 
   findAll() {
-    return this.inventoryItemsRepositry.find();
+    return this.inventoryItemsRepositry.find({ order: { id: 1 } });
   }
 
   findById(id: number) {
-    return this.inventoryItemsRepositry.findOne(id);
+    return this.inventoryItemsRepositry.findById(id);
   }
 
-  async exists(id: number) {
-    const item = await this.inventoryItemsRepositry.findOne(id);
-    return item == null;
+  exists(id: number) {
+    return this.inventoryItemsRepositry.exists(id);
   }
 
   async update(id: number, updateInventoryItemDto: UpdateInventoryItemDto) {
-    const item = await this.inventoryItemsRepositry.findOne(id);
-    for (const prop in updateInventoryItemDto) {
-      item[prop] = updateInventoryItemDto[prop];
-    }
-    return this.inventoryItemsRepositry.save(item);
+    return this.inventoryItemsRepositry.findByIdAndUpdate(
+      id,
+      updateInventoryItemDto,
+    );
   }
 
-  remove(id: number) {
-    return this.inventoryItemsRepositry.delete(id);
+  async remove(id: number, deletionCommentDto: DeletionCommentDto) {
+    const item = await this.inventoryItemsRepositry.findByIdAndDelete(id);
+    await this.deletedItemsService.create({
+      deletionComment: deletionCommentDto.deletionComment,
+      itemId: item.id,
+      productCategory: item.productCategory,
+      title: item.title,
+      brand: item.brand,
+      price: item.price,
+      currency: item.currency,
+      quantity: item.quantity,
+      createdAt: item.createdAt,
+    });
+
+    return item;
+  }
+
+  async fetchDeletedItems() {
+    return this.deletedItemsService.getDeletedItems();
+  }
+
+  async isItemADeletedItem(id: number) {
+    return this.deletedItemsService.isItemInBin(id);
+  }
+
+  async restoreDeletedItem(id: number) {
+    const restoredItem =
+      await this.deletedItemsService.restoreItem<InventoryItemEntity>(id);
+    if (restoredItem) {
+      const item = this.inventoryItemsRepositry.create(restoredItem);
+
+      return this.inventoryItemsRepositry.save(item);
+    }
   }
 }

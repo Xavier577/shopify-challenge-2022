@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { PrimaryGeneratedColumn, Column, Entity } from 'typeorm';
 
 @Entity({ name: 'deleted_items' })

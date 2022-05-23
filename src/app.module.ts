@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { InventoryItemsModule } from './inventory-items/inventory-items.module';
+import { DeletedItemsModule } from './deleted-items/deleted-items.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { InventoryItemsModule } from './inventory-items/inventory-items.module';
       synchronize: true,
     }),
     InventoryItemsModule,
+    DeletedItemsModule,
   ],
 })
 export class AppModule {}
