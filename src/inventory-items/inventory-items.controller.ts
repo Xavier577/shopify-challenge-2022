@@ -40,7 +40,7 @@ export class InventoryItemsController {
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
+  async findById(@Param('id', ParseIntPipe) id: number) {
     const itemExists = await this.inventoryItemsService.exists(id);
     if (!itemExists) throw new NotFoundException('item not found');
     return this.inventoryItemsService.findById(id);
